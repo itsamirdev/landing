@@ -185,8 +185,13 @@ function PlantScene() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,197,94,0.18),transparent_30%),radial-gradient(circle_at_70%_20%,rgba(132,204,22,0.10),transparent_20%)]" />
       <Canvas
         camera={{ position: [0, 0.15, 4.2], fov: 42 }}
+        // AFTER (fixed)
         onPointerMove={(e) => {
-          pointer.current = { x: e.pointer.x, y: e.pointer.y };
+          const rect = (e.target as HTMLElement).getBoundingClientRect();
+          pointer.current = {
+            x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            y: -((e.clientY - rect.top) / rect.height) * 2 + 1,
+          };
         }}
       >
         <ambientLight intensity={0.55} />
