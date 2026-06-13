@@ -35,7 +35,7 @@ import {
 
 // ─── Animation config ─────────────────────────────────────────────────────────
 
-const ease = [0.22, 1, 0.36, 1];
+const ease = [0.22, 1, 0.36, 1] as const; 
 
 const FADE_UP = {
   hidden: { opacity: 0, y: 24 },
