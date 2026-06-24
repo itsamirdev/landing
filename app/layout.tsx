@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NeroPlant",
-  description: "AI Plant Identification",
+  title: "Amirhossein Gholami | Portfolio",
+  description: "Personal Portfolio",
 };
 
 export default function RootLayout({

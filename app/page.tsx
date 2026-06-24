@@ -1,981 +1,1613 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import Head from "next/head";
 import {
-  motion,
-  useScroll,
-  useTransform,
-  AnimatePresence,
-  useInView,
-  useMotionValue,
-  useSpring,
-  type Variants,
-} from "framer-motion";
-import {
-  ArrowRight, ArrowUp, Leaf, ScanSearch, Brain, Layers3, ShieldCheck,
-  Star, CheckCircle2, Check, Minus, Menu, X, Droplets, Sun, Bell,
-  Zap, ChevronDown, Sparkles, Camera,
-} from "lucide-react";
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FC,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Feature {
-  icon: React.ElementType;
+type Project = {
+  id: string;
   title: string;
-  text: string;
-  accent: string;
-  shadow: string;
-  border: string;
-}
-
-interface Plan {
-  name: string;
-  price: { monthly: number; annual: number };
-  description: string;
-  features: { text: string; ok: boolean }[];
-  cta: string;
-  highlight: boolean;
-  badge: string | null;
-}
-
-interface Testimonial {
-  name: string; role: string; text: string;
-  rating: number; initials: string; grad: string;
-}
-
-// ─── Animation ────────────────────────────────────────────────────────────────
-
-const ease = [0.22, 1, 0.36, 1] as const;
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease } },
-};
-const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.88 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease } },
-};
-const stagger: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
+  subtitle: string;
+  metric: string;
+  metricLabel: string;
+  desc: string;
+  tags: string[];
+  type: string;
+  year: string;
+  link: string;
+  featured?: boolean;
 };
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+type Experience = {
+  role: string;
+  company: string;
+  period: string;
+  place: string;
+  bullets: string[];
+};
 
-const NAV = [
-  { id: "features", label: "Features" },
-  { id: "pricing", label: "Pricing" },
-  { id: "reviews", label: "Reviews" },
-  { id: "faq", label: "FAQ" },
-];
+type Writing = {
+  title: string;
+  excerpt: string;
+  link: string;
+  tag: string;
+};
 
-const MARQUEE = [
-  "AI Plant Identification", "AR Room Preview", "Smart Care Reminders",
-  "Disease Detection", "Watering Schedules", "Growth Tracking",
-  "50,000+ Species", "Light Optimization",
-];
-
-const FEATURES: Feature[] = [
+const PROJECTS: Project[] = [
   {
-    icon: ScanSearch, title: "Instant plant ID",
-    text: "Point your camera at any plant. Get an accurate match in under 2 seconds from a library of 50k+ species.",
-    accent: "from-emerald-500/20 to-transparent",
-    shadow: "shadow-emerald-500/10 hover:shadow-emerald-400/20",
-    border: "border-emerald-500/15 hover:border-emerald-400/35",
+    id: "nero",
+    title: "NeroPlant",
+    subtitle: "Founder & Full-Stack Developer",
+    metric: "Live",
+    metricLabel: "product in active development",
+    desc:
+      "An intelligent plant care platform with automated scheduling, species-based recommendations, notifications, and a modern React + Django stack.",
+    tags: ["React", "Django", "PostgreSQL", "Redis", "Celery", "Docker"],
+    type: "Founder Project",
+    year: "2025–Now",
+    link: "https://neroplant.com",
+    featured: true,
   },
   {
-    icon: Brain, title: "AI care assistant",
-    text: "Ask anything about watering, light, soil, or pests. Get simple, reliable guidance backed by real plant science.",
-    accent: "from-violet-500/20 to-transparent",
-    shadow: "shadow-violet-500/10 hover:shadow-violet-400/20",
-    border: "border-violet-500/15 hover:border-violet-400/35",
+    id: "logiown",
+    title: "LogiOwn",
+    subtitle: "Backend & DevOps impact",
+    metric: "60%",
+    metricLabel: "geospatial latency reduced",
+    desc:
+      "Optimized production logistics APIs with spatial indexing, Redis caching, async Celery processing, CI/CD automation, and production hardening.",
+    tags: ["Django", "FastAPI", "PostgreSQL", "Redis", "Docker", "GitLab CI"],
+    type: "Production System",
+    year: "2024–2026",
+    link: "https://github.com/itsamirdev",
   },
   {
-    icon: Layers3, title: "AR plant preview",
-    text: "See exactly how a plant looks in your room at true scale before placing or buying it.",
-    accent: "from-sky-500/20 to-transparent",
-    shadow: "shadow-sky-500/10 hover:shadow-sky-400/20",
-    border: "border-sky-500/15 hover:border-sky-400/35",
+    id: "ops",
+    title: "CI/CD Delivery Pipeline",
+    subtitle: "Deployment automation",
+    metric: "Faster",
+    metricLabel: "delivery and fewer manual steps",
+    desc:
+      "Containerized services, configured Nginx, automated deployments, and reduced repetitive operations so the team could move faster with fewer production risks.",
+    tags: ["GitLab CI/CD", "Docker", "Nginx", "Linux", "Bash"],
+    type: "DevOps",
+    year: "2024",
+    link: "https://github.com/itsamirdev",
   },
   {
-    icon: ShieldCheck, title: "Smart reminders",
-    text: "Timely nudges for watering, misting, repotting, and seasonal care — so nothing falls through the cracks.",
-    accent: "from-amber-500/20 to-transparent",
-    shadow: "shadow-amber-500/10 hover:shadow-amber-400/20",
-    border: "border-amber-500/15 hover:border-amber-400/35",
+    id: "monitor",
+    title: "Monitoring & Reliability",
+    subtitle: "Production visibility",
+    metric: "Alerting",
+    metricLabel: "and issue visibility",
+    desc:
+      "Used monitoring and error reporting flows to keep production systems observable and maintainable, with emphasis on reliability and response speed.",
+    tags: ["Sentry", "Postman", "Testing", "Linux", "Bash"],
+    type: "Reliability",
+    year: "2024",
+    link: "https://github.com/itsamirdev",
   },
 ];
 
-const STEPS = [
-  { n: "01", title: "Scan", text: "Open camera. Point at any plant. Get an ID in seconds.", icon: Camera },
-  { n: "02", title: "Learn", text: "Get care guides, diagnosis hints, and growth timelines instantly.", icon: Brain },
-  { n: "03", title: "Grow", text: "AR previews, smart reminders — keep every plant thriving.", icon: Sparkles },
-];
-
-const PLANS: Plan[] = [
+const EXPERIENCE: Experience[] = [
   {
-    name: "Seed", price: { monthly: 0, annual: 0 }, description: "Perfect for getting started.",
-    features: [
-      { text: "10 plant scans / month", ok: true },
-      { text: "Basic care tips", ok: true },
-      { text: "Plant diary & notes", ok: true },
-      { text: "AI care assistant", ok: false },
-      { text: "AR room preview", ok: false },
-      { text: "Smart reminders", ok: false },
+    role: "Backend & DevOps Engineer",
+    company: "LogiOwn",
+    period: "Nov 2024 – Mar 2026",
+    place: "United Arab Emirates",
+    bullets: [
+      "Reduced geospatial query latency by 60% through spatial indexing and Redis caching.",
+      "Offloaded heavy jobs to Celery workers to keep APIs responsive under load.",
+      "Built and maintained CI/CD and deployment flows, improving production delivery and stability.",
     ],
-    cta: "Start for free", highlight: false, badge: null,
   },
   {
-    name: "Bloom", price: { monthly: 9, annual: 7 }, description: "Everything for thriving plants.",
-    features: [
-      { text: "Unlimited scans", ok: true },
-      { text: "AI care assistant", ok: true },
-      { text: "AR room preview", ok: true },
-      { text: "Smart care reminders", ok: true },
-      { text: "Disease detection", ok: true },
-      { text: "Priority support", ok: false },
+    role: "Backend Developer",
+    company: "Danoup Guys",
+    period: "Nov 2023 – Jul 2026",
+    place: "Iran",
+    bullets: [
+      "Started in Django and grew into a hybrid development / DevOps role.",
+      "Set up GitLab CI/CD, Docker containerization, and stable Nginx-based production environments.",
+      "Worked closely with frontend, product, and infrastructure teams across the full delivery cycle.",
     ],
-    cta: "Start 14-day free trial", highlight: true, badge: "Most popular",
   },
   {
-    name: "Garden", price: { monthly: 19, annual: 15 }, description: "For plant-loving households.",
-    features: [
-      { text: "Everything in Bloom", ok: true },
-      { text: "Up to 5 profiles", ok: true },
-      { text: "Shared plant library", ok: true },
-      { text: "Priority support", ok: true },
-      { text: "Early feature access", ok: true },
-      { text: "Custom care programs", ok: true },
+    role: "Backend Developer Intern",
+    company: "Hoopad Cloud",
+    period: "Jul 2023 – Oct 2023",
+    place: "Iran",
+    bullets: [
+      "Learned how production teams collaborate through sprints, meetings, and shared responsibility.",
+      "Built a foundation in backend delivery, communication, and the full software lifecycle.",
     ],
-    cta: "Start 14-day free trial", highlight: false, badge: null,
   },
 ];
 
-const TESTIMONIALS: Testimonial[] = [
+const WRITING: Writing[] = [
   {
-    name: "Sarah K.", role: "Plant enthusiast", rating: 5, initials: "SK",
-    grad: "from-emerald-400 to-teal-500",
-    text: "I killed so many plants before NeroPlant. Now I actually know what each one needs. My monstera has never looked better.",
+    title: "Multi thread and multi process in Python",
+    excerpt:
+      "A practical article for Python developers exploring concurrency, execution models, and when to use each approach.",
+    link: "https://itsamirdev.hashnode.dev/multi-thread-and-multi-process-in-python",
+    tag: "Python",
   },
   {
-    name: "Marcus T.", role: "Interior designer", rating: 5, initials: "MT",
-    grad: "from-violet-400 to-purple-500",
-    text: "The AR preview is a game changer for staging rooms. I show clients exactly how a plant fits before they commit.",
+    title: "Python Design Patterns",
+    excerpt:
+      "A clean explanation of design patterns and how they fit into day-to-day software development.",
+    link: "https://itsamirdev.hashnode.dev/python-design-patterns",
+    tag: "Architecture",
   },
   {
-    name: "Priya N.", role: "Home gardener", rating: 5, initials: "PN",
-    grad: "from-sky-400 to-blue-500",
-    text: "Identified a mystery plant in under three seconds. The care advice was spot-on. Absolutely love this app.",
+    title: "Linux basic for beginners",
+    excerpt:
+      "A friendly introduction to Linux essentials for developers and learners entering production workflows.",
+    link: "https://itsamirdev.hashnode.dev/linux-basic-for-beginners",
+    tag: "Linux",
   },
 ];
 
-const FAQS = [
-  { q: "How accurate is the plant identification?", a: "NeroPlant achieves over 95% accuracy on common houseplants and garden plants, drawing from a database of 50,000+ species. For rare species it returns the closest matches with confidence scores." },
-  { q: "Does the app work offline?", a: "Basic plant scans work offline for the 500 most common species. Full AI features, disease detection, and AR preview require an internet connection." },
-  { q: "How does AR plant preview work?", a: "Point your camera at any flat surface. NeroPlant places a 3D model of the plant in your space at true scale. Walk around it, resize it, and see exactly how it fits before buying." },
-  { q: "Is my plant and location data private?", a: "Completely. Scan images are processed on-device or deleted immediately. We never sell or share your data. Your plant library lives on your device." },
-  { q: "Can I cancel my subscription anytime?", a: "Yes. Cancel from settings with one tap. You keep full access until the end of your billing period with zero extra charges." },
-  { q: "What platforms does NeroPlant support?", a: "NeroPlant is available on iOS and Android. A web companion for managing your plant library from desktop is coming soon." },
+const SKILLS = {
+  backend: ["Python", "Django", "DRF", "FastAPI", "Go", "Gin", "Celery", "WebSockets"],
+  data: ["PostgreSQL", "Redis", "MongoDB", "MySQL", "SQLite"],
+  devops: ["Docker", "Linux", "Nginx", "GitLab CI/CD", "Ansible", "Bash", "Sentry"],
+  frontend: ["React", "JavaScript", "HTML/CSS"],
+  testing: ["Postman", "Unit testing", "Snapshot testing", "Stress testing", "TDD"],
+};
+
+const IMPACT = [
+  { value: 60, suffix: "%", label: "query latency reduced", note: "LogiOwn geospatial optimization" },
+  { value: 3, suffix: "+", label: "years of production experience", note: "backend and infrastructure work" },
+  { value: 20, suffix: "+", label: "projects delivered", note: "production and personal systems" },
+  { value: 3, suffix: "+", label: "articles published", note: "technical writing for developers" },
 ];
 
-// ─── Particle canvas ──────────────────────────────────────────────────────────
+const TYPE_COLOR: Record<string, string> = {
+  "Founder Project": "#8b5cf6",
+  "Production System": "#3b82f6",
+  DevOps: "#14b8a6",
+  Reliability: "#f59e0b",
+};
 
-function Particles() {
-  const ref = useRef<HTMLCanvasElement>(null);
+function useScrollY() {
+  const [y, setY] = useState(0);
   useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let raf: number;
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    resize();
-    window.addEventListener("resize", resize, { passive: true });
-    const dots = Array.from({ length: 50 }, () => ({
-      x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
-      r: Math.random() * 1.2 + 0.3,
-      vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15,
-      a: Math.random() * 0.4 + 0.08,
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      dots.forEach((d) => {
-        d.x += d.vx; d.y += d.vy;
-        if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
-        if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(52,211,153,${d.a})`;
-        ctx.fill();
-      });
-      dots.forEach((a, i) => dots.slice(i + 1).forEach((b) => {
-        const dist = Math.hypot(a.x - b.x, a.y - b.y);
-        if (dist < 110) {
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = `rgba(52,211,153,${0.05 * (1 - dist / 110)})`;
-          ctx.lineWidth = 0.5; ctx.stroke();
-        }
-      }));
-      raf = requestAnimationFrame(draw);
+    const onScroll = () => setY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return y;
+}
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }
+
+    // Safari fallback
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
+  }, []);
+  return reduced;
+}
+
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisible(true);
+    }, { threshold });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [threshold]);
+
+  return { ref, visible };
+}
+
+function useCountUp(target: number, trigger: boolean, duration = 1200) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!trigger) return;
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(eased * target));
+      if (progress < 1) frame = requestAnimationFrame(tick);
     };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={ref} className="pointer-events-none fixed inset-0 z-0" aria-hidden="true" />;
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, trigger, duration]);
+  return value;
 }
 
-// ─── Back to top ──────────────────────────────────────────────────────────────
+const IconGithub = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+  </svg>
+);
 
-function BackToTop() {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const fn = () => setShow(window.scrollY > 600);
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.button
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-8 right-8 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 shadow-xl shadow-emerald-500/10 backdrop-blur-xl transition-all hover:bg-emerald-400 hover:text-slate-950 focus-visible:outline-none"
-          aria-label="Back to top"
-        >
-          <ArrowUp className="h-4 w-4" />
-        </motion.button>
-      )}
-    </AnimatePresence>
-  );
-}
+const IconLinkedin = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
 
-// ─── Marquee ─────────────────────────────────────────────────────────────────
+const IconMail = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+  </svg>
+);
 
-function Marquee() {
-  const items = [...MARQUEE, ...MARQUEE, ...MARQUEE];
-  return (
-    <div className="relative overflow-hidden border-y border-white/[0.05] py-4" aria-hidden="true">
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#030712] to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#030712] to-transparent" />
-      <motion.div
-        animate={{ x: ["0%", "-33.33%"] }}
-        transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
-        className="flex w-max gap-10"
-      >
-        {items.map((item, i) => (
-          <span key={i} className="flex items-center gap-3 whitespace-nowrap text-[13px] font-medium tracking-wide text-slate-500">
-            <span className="h-1 w-1 rounded-full bg-emerald-400/60" />
-            {item}
-          </span>
-        ))}
-      </motion.div>
-    </div>
-  );
-}
+const IconArrow = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <line x1="7" y1="17" x2="17" y2="7" />
+    <polyline points="7 7 17 7 17 17" />
+  </svg>
+);
 
-// ─── Counter ──────────────────────────────────────────────────────────────────
+const IconCheck = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
 
-function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-  const mv = useMotionValue(0);
-  const spring = useSpring(mv, { stiffness: 50, damping: 18 });
-  const [val, setVal] = useState("0");
-  useEffect(() => { if (inView) mv.set(target); }, [inView, mv, target]);
-  useEffect(() => spring.on("change", (v) => {
-    const n = Math.round(v);
-    setVal(n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`);
-  }), [spring]);
-  return <span ref={ref}>{val}{suffix}</span>;
-}
+const IconSpark = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M13 2 9 14l-6 2 6 2 4 10 4-10 6-2-6-2-4-12Z" />
+  </svg>
+);
 
-// ─── FAQ item ─────────────────────────────────────────────────────────────────
+const IconSearch = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
 
-function FaqItem({ q, a }: { q: string; a: string }) {
+const IconCommand = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 18a3 3 0 1 0 0-6h12a3 3 0 1 1 0 6H6Z" />
+    <path d="M6 12a3 3 0 1 1 0-6h12a3 3 0 1 1 0 6H6Z" />
+  </svg>
+);
+
+const Navbar: FC<{
+  y: number;
+  onOpenPalette: () => void;
+}> = ({ y, onOpenPalette }) => {
   const [open, setOpen] = useState(false);
-  return (
-    <div className="border-b border-white/[0.06]">
-      <button
-        onClick={() => setOpen((p) => !p)} aria-expanded={open}
-        className="flex w-full items-center justify-between gap-4 py-5 text-left text-[15px] font-medium text-white/90 transition hover:text-emerald-300 focus-visible:outline-none"
-      >
-        {q}
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.22 }}>
-          <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
-        </motion.span>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            key="a" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28, ease }}
-            className="overflow-hidden"
-          >
-            <p className="pb-5 text-sm leading-7 text-slate-400">{a}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+  const stuck = y > 20;
 
-// ─── 3D Phone Mockup ──────────────────────────────────────────────────────────
-
-function PhoneMockup() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const rotateX = useSpring(useTransform(mouseY, [-200, 200], [14, -14]), { stiffness: 80, damping: 20 });
-  const rotateY = useSpring(useTransform(mouseX, [-200, 200], [-16, 16]), { stiffness: 80, damping: 20 });
-
-  const handleMouse = (e: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    mouseX.set(e.clientX - rect.left - rect.width / 2);
-    mouseY.set(e.clientY - rect.top - rect.height / 2);
+  const jump = (id: string) => {
+    setOpen(false);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const reset = () => { mouseX.set(0); mouseY.set(0); };
 
   return (
-    <div ref={containerRef} className="relative mx-auto w-full max-w-[340px]"
-      onMouseMove={handleMouse} onMouseLeave={reset} style={{ perspective: "1000px" }}>
-      {/* Ambient glows */}
-      <div className="pointer-events-none absolute -inset-8 -z-10">
-        <motion.div
-          animate={{ scale: [1, 1.12, 1], opacity: [0.35, 0.6, 0.35] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -left-4 top-8 h-56 w-56 rounded-full bg-emerald-500/20 blur-3xl"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-          className="absolute -right-4 bottom-8 h-48 w-48 rounded-full bg-lime-500/15 blur-3xl"
-        />
-      </div>
+    <>
+      <nav className={`nav${stuck ? " nav--stuck" : ""}`}>
+        <a href="#" className="logo" aria-label="Amirhossein Gholami home">
+          AG<span className="logo-dot">.</span>
+        </a>
 
-      <motion.div
-        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-        initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 0.3, ease }}
-      >
-        <motion.div
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
-        >
-          {/* Phone body */}
-          <div
-            className="relative overflow-hidden rounded-[2.4rem] border border-white/[0.1]"
-            style={{
-              background: "linear-gradient(160deg,#0f1729 0%,#070d1a 60%,#0a1520 100%)",
-              boxShadow: "0 40px 80px -20px rgba(0,0,0,0.7),0 0 0 0.5px rgba(255,255,255,0.07) inset,0 1px 0 rgba(255,255,255,0.1) inset",
-            }}
-          >
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-[5px] w-16 rounded-full bg-white/[0.07]" />
-            </div>
-            <div className="flex items-center justify-between px-5 py-2 text-[11px]">
-              <span className="font-semibold text-white/90 tracking-wide">NeroPlant</span>
-              <div className="flex items-center gap-1.5 text-[10px] text-emerald-400/80">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />AI active
-              </div>
-            </div>
-            <div className="mx-4 h-px bg-white/[0.05]" />
-            <div className="space-y-2.5 p-3.5">
-              {/* Scan result */}
-              <div className="relative overflow-hidden rounded-2xl p-4"
-                style={{ background:"linear-gradient(135deg,#10b981 0%,#84cc16 60%,#34d399 100%)", boxShadow:"0 8px 24px -6px rgba(16,185,129,0.5)" }}>
-                <motion.div
-                  animate={{ y:["-100%","700%"] }}
-                  transition={{ duration:2.8, repeat:Infinity, ease:"linear", repeatDelay:1 }}
-                  className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white/35 to-transparent"
-                />
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-900/75">
-                  <Sparkles className="h-3 w-3" /> AI scan complete
-                </div>
-                <h3 className="mt-1.5 text-lg font-bold text-slate-950">Monstera Deliciosa</h3>
-                <p className="text-[11px] text-slate-900/55 mt-0.5">Tropical · easy care · 94% match</p>
-                <div className="mt-2.5 flex flex-wrap gap-1 text-[10px] font-bold text-slate-950">
-                  {["✓ Healthy","Low light ok","Water in 2d"].map((l) => (
-                    <span key={l} className="rounded-full bg-slate-950/12 px-2 py-0.5">{l}</span>
-                  ))}
-                </div>
-              </div>
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { icon: Droplets, label:"Water", val:"2 days", c:"#60a5fa" },
-                  { icon: Sun, label:"Light", val:"Indirect", c:"#fbbf24" },
-                  { icon: Bell, label:"Care", val:"Today", c:"#34d399" },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-xl border border-white/[0.05] p-2.5 text-center" style={{ background:"rgba(255,255,255,0.025)" }}>
-                    <s.icon className="mx-auto mb-1 h-3.5 w-3.5" style={{ color:s.c }} />
-                    <p className="text-[9px] text-slate-500">{s.label}</p>
-                    <p className="text-[10px] font-semibold text-white/80">{s.val}</p>
-                  </div>
-                ))}
-              </div>
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { icon: Camera, label:"Quick scan", sub:"From camera", c:"#34d399", bg:"rgba(52,211,153,0.07)" },
-                  { icon: Layers3, label:"AR preview", sub:"In your room", c:"#a3e635", bg:"rgba(163,230,53,0.07)" },
-                ].map((a) => (
-                  <div key={a.label} className="rounded-xl border border-white/[0.05] p-3" style={{ background:a.bg }}>
-                    <a.icon className="h-4 w-4 mb-1.5" style={{ color:a.c }} />
-                    <p className="text-[11px] font-semibold text-white/80">{a.label}</p>
-                    <p className="text-[10px] text-slate-500">{a.sub}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-center pb-3 pt-2">
-              <div className="h-1 w-24 rounded-full bg-white/[0.08]" />
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Floating badges */}
-      <motion.div initial={{ opacity:0, x:30 }} animate={{ opacity:1, x:0 }} transition={{ duration:0.6, delay:1.0, ease }}
-        className="absolute -right-6 top-20 z-20 rounded-2xl border border-white/[0.08] px-3 py-2.5 text-xs shadow-2xl backdrop-blur-xl"
-        style={{ background:"rgba(10,18,36,0.88)" }}>
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-400/12">
-            <Bell className="h-3.5 w-3.5 text-emerald-400" />
-          </div>
-          <div>
-            <p className="font-semibold text-white">Time to water!</p>
-            <p className="text-[10px] text-slate-400">Pothos needs a drink</p>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div initial={{ opacity:0, x:-30 }} animate={{ opacity:1, x:0 }} transition={{ duration:0.6, delay:1.2, ease }}
-        className="absolute -left-6 bottom-36 z-20 rounded-2xl border border-white/[0.08] px-3 py-2.5 text-xs shadow-2xl backdrop-blur-xl"
-        style={{ background:"rgba(10,18,36,0.88)" }}>
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-lime-400/12">
-            <ScanSearch className="h-3.5 w-3.5 text-lime-400" />
-          </div>
-          <div>
-            <p className="font-semibold text-white">94% match</p>
-            <p className="text-[10px] text-slate-400">Monstera identified</p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-// ─── 3D Feature card ──────────────────────────────────────────────────────────
-
-function FeatureCard({ f }: { f: Feature }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const mx = useMotionValue(0), my = useMotionValue(0);
-  const rx = useSpring(useTransform(my, [-80,80], [7,-7]), { stiffness:150, damping:20 });
-  const ry = useSpring(useTransform(mx, [-80,80], [-7,7]), { stiffness:150, damping:20 });
-
-  const Icon = f.icon;
-  return (
-    <motion.div
-      ref={cardRef} variants={scaleIn}
-      style={{ rotateX:rx, rotateY:ry, transformStyle:"preserve-3d" }}
-      onMouseMove={(e) => {
-        const r = cardRef.current?.getBoundingClientRect();
-        if (!r) return;
-        mx.set(e.clientX - r.left - r.width / 2);
-        my.set(e.clientY - r.top - r.height / 2);
-      }}
-      onMouseLeave={() => { mx.set(0); my.set(0); }}
-      className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-b from-white/[0.055] to-white/[0.01] p-6 shadow-xl transition-all duration-300 cursor-default ${f.border} ${f.shadow}`}
-    >
-      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${f.accent}`} />
-      <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-white/10 to-white/5 ring-1 ring-white/10">
-        <Icon className="h-5 w-5 text-white" />
-      </div>
-      <h3 className="text-[15px] font-semibold text-white">{f.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-400">{f.text}</p>
-    </motion.div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default function NeroPlantLanding() {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [emailError, setEmailError] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [annual, setAnnual] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress: heroSY } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const mockupY = useTransform(heroSY, [0,1], [0,-50]);
-  const heroOpacity = useTransform(heroSY, [0,0.75], [1,0]);
-  const { scrollYProgress } = useScroll();
-  const barScale = useSpring(scrollYProgress, { stiffness:120, damping:30 });
-
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 60);
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
-    document.addEventListener("keydown", fn);
-    return () => document.removeEventListener("keydown", fn);
-  }, [menuOpen]);
-
-  const scrollTo = useCallback((id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-    setMenuOpen(false);
-  }, []);
-
-  const handleSubmit = useCallback(() => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setEmailError(true); return; }
-    setEmailError(false); setSubmitted(true);
-  }, [email]);
-
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-[#030712] text-white antialiased selection:bg-emerald-400/25">
-      <Particles />
-
-      {/* Ambient light layers */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute left-1/2 top-0 h-[700px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/8 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 h-[400px] w-[600px] rounded-full bg-teal-500/6 blur-[100px]" />
-        <div className="absolute left-0 top-1/2 h-[500px] w-[300px] -translate-y-1/2 rounded-full bg-lime-500/5 blur-[80px]" />
-      </div>
-
-      {/* Scroll progress */}
-      <div className="fixed left-0 right-0 top-0 z-[100] h-[2px]" aria-hidden>
-        <motion.div style={{ scaleX: barScale }} className="h-full w-full origin-left bg-gradient-to-r from-emerald-400 via-lime-400 to-emerald-400" />
-      </div>
-
-      <BackToTop />
-
-      {/* ── Header ── */}
-      <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? "border-b border-white/[0.05] bg-[#030712]/80 shadow-2xl shadow-black/40 backdrop-blur-2xl" : "border-b border-transparent"}`}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-          <motion.button initial={{ opacity:0, x:-16 }} animate={{ opacity:1, x:0 }} transition={{ duration:0.5 }}
-            onClick={() => window.scrollTo({ top:0, behavior:"smooth" })}
-            className="group flex items-center gap-3 focus-visible:outline-none" aria-label="NeroPlant — home">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-300 group-hover:scale-105 group-hover:shadow-emerald-400/45"
-              style={{ background:"linear-gradient(135deg,#10b981,#84cc16)" }}>
-              <Leaf className="h-4 w-4 text-slate-950" />
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-semibold tracking-wide text-white">NeroPlant</div>
-              <div className="text-[11px] text-slate-500">AI plant care companion</div>
-            </div>
-          </motion.button>
-
-          <motion.nav initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.5, delay:0.1 }}
-            className="hidden items-center gap-1 md:flex">
-            {NAV.map(({ id, label }) => (
-              <button key={id} onClick={() => scrollTo(id)}
-                className="rounded-lg px-4 py-2 text-sm text-slate-400 transition hover:bg-white/[0.04] hover:text-white focus-visible:outline-none">
-                {label}
-              </button>
-            ))}
-            <div className="ml-3 h-4 w-px bg-white/[0.08]" />
-            <button onClick={() => scrollTo("waitlist")}
-              className="ml-3 rounded-full px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.03] hover:shadow-emerald-400/35 active:scale-95 focus-visible:outline-none"
-              style={{ background:"linear-gradient(135deg,#34d399,#84cc16)" }}>
-              Join waitlist
+        <div className="nav-links">
+          {[
+            ["About", "about"],
+            ["Experience", "experience"],
+            ["Projects", "projects"],
+            ["Writing", "writing"],
+            ["Contact", "contact"],
+          ].map(([label, id]) => (
+            <button key={id} className="nav-link" onClick={() => jump(id)} type="button">
+              {label}
             </button>
-          </motion.nav>
+          ))}
 
-          <button onClick={() => setMenuOpen((p) => !p)} aria-expanded={menuOpen} aria-label="Toggle navigation"
-            className="rounded-xl p-2 text-slate-400 transition hover:bg-white/[0.04] hover:text-white focus-visible:outline-none md:hidden">
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <button className="nav-ghost" onClick={onOpenPalette} type="button" aria-label="Open command palette">
+            <IconCommand />
+            <span>Command</span>
+            <kbd>⌘K</kbd>
           </button>
         </div>
 
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.nav key="mob" initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:"auto" }}
-              exit={{ opacity:0, height:0 }} transition={{ duration:0.25, ease }}
-              className="overflow-hidden border-t border-white/[0.05] bg-[#030712]/95 backdrop-blur-2xl md:hidden">
-              <div className="flex flex-col gap-3 px-6 py-5 text-sm">
-                {NAV.map(({ id, label }) => (
-                  <button key={id} onClick={() => scrollTo(id)}
-                    className="text-left text-slate-300 transition hover:text-white focus-visible:outline-none">{label}</button>
-                ))}
-                <button onClick={() => scrollTo("waitlist")}
-                  className="mt-1 w-fit rounded-full px-5 py-2 text-sm font-semibold text-slate-950 focus-visible:outline-none"
-                  style={{ background:"linear-gradient(135deg,#34d399,#84cc16)" }}>
-                  Join waitlist
-                </button>
-              </div>
-            </motion.nav>
-          )}
-        </AnimatePresence>
-      </header>
+        <button className="burger" onClick={() => setOpen((v) => !v)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open}>
+          <span />
+          <span />
+          <span />
+        </button>
+      </nav>
 
-      <main>
-        {/* ══ HERO ══ */}
-        <div ref={heroRef} className="relative z-10 mx-auto max-w-7xl px-6 pt-16 lg:px-8 lg:pt-28">
-          <section className="grid items-center gap-14 lg:grid-cols-2">
-            <motion.div style={{ opacity: heroOpacity }}>
-              <motion.div variants={fadeUp} initial="hidden" animate="visible"
-                className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/18 bg-emerald-500/7 px-4 py-2 text-[13px] text-emerald-300 shadow-lg shadow-emerald-500/8 backdrop-blur-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                </span>
-                Now in early access · Limited spots
-              </motion.div>
+      <div className={`mob-menu${open ? " mob-menu--open" : ""}`}>
+        {[
+          ["About", "about"],
+          ["Experience", "experience"],
+          ["Projects", "projects"],
+          ["Writing", "writing"],
+          ["Contact", "contact"],
+        ].map(([label, id]) => (
+          <button key={id} className="mob-link" onClick={() => jump(id)} type="button">
+            {label}
+          </button>
+        ))}
+        <button className="mob-link mob-link--palette" onClick={onOpenPalette} type="button">
+          <IconCommand />
+          Command Palette
+        </button>
+      </div>
+    </>
+  );
+};
 
-              <motion.h1 variants={fadeUp} initial="hidden" animate="visible" transition={{ delay:0.08 }}
-                className="mt-6 max-w-xl text-5xl font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
-                Give every{" "}
-                <span style={{
-                  WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-                  backgroundImage:"linear-gradient(135deg,#34d399 0%,#a3e635 50%,#34d399 100%)",
-                  backgroundSize:"200% 100%", animation:"shimmer 4s ease infinite",
-                }}>plant</span>{" "}a voice.
-              </motion.h1>
+const Hero: FC<{ reducedMotion: boolean; onOpenPalette: () => void }> = ({ reducedMotion, onOpenPalette }) => {
+  const [phase, setPhase] = useState(0);
+  const phrases = ["Backend systems", "Performance work", "DevOps delivery", "Founder mode"];
+  const [phraseIndex, setPhraseIndex] = useState(0);
 
-              <motion.p variants={fadeUp} initial="hidden" animate="visible" transition={{ delay:0.15 }}
-                className="mt-6 max-w-lg text-lg leading-8 text-slate-400">
-                NeroPlant uses AI to identify plants, diagnose problems, and guide your care routine — with AR preview so you know exactly how a plant fits your space.
-              </motion.p>
+  useEffect(() => {
+    if (reducedMotion) {
+      setPhase(5);
+      return;
+    }
+    const timings = [0, 450, 900, 1350, 1750];
+    const timers = timings.map((t, i) => setTimeout(() => setPhase(i + 1), t));
+    const rotate = setInterval(() => setPhraseIndex((i) => (i + 1) % phrases.length), 2200);
+    return () => {
+      timers.forEach(clearTimeout);
+      clearInterval(rotate);
+    };
+  }, [reducedMotion, phrases.length]);
 
-              <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay:0.22 }}
-                className="mt-8 flex flex-wrap gap-3">
-                <button onClick={() => scrollTo("waitlist")}
-                  className="group relative inline-flex items-center overflow-hidden rounded-full px-7 py-3.5 text-sm font-semibold text-slate-950 shadow-2xl shadow-emerald-500/25 transition-all hover:scale-[1.03] hover:shadow-emerald-400/45 active:scale-95 focus-visible:outline-none"
-                  style={{ background:"linear-gradient(135deg,#34d399 0%,#a3e635 100%)" }}>
-                  Get early access
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </button>
-                <button onClick={() => scrollTo("how")}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-7 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/[0.07] hover:border-white/[0.15] active:scale-95 focus-visible:outline-none">
-                  <Zap className="h-4 w-4 text-emerald-400" />
-                  See how it works
-                </button>
-              </motion.div>
+  const show = (n: number) => phase >= n;
 
-              <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay:0.3 }}
-                className="mt-8 flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {["#34d399","#10b981","#6ee7b7","#059669","#a7f3d0"].map((c,i) => (
-                    <div key={i} className="h-8 w-8 rounded-full ring-2 ring-[#030712]"
-                      style={{ background:`linear-gradient(135deg,${c},${c}88)` }} />
-                  ))}
-                </div>
-                <p className="text-sm text-slate-500">
-                  <span className="font-semibold text-white">2,400+</span> plant lovers already joined
-                </p>
-              </motion.div>
-
-              <motion.div variants={fadeUp} initial="hidden" animate="visible" transition={{ delay:0.38 }}
-                className="mt-10 grid max-w-sm grid-cols-3 gap-4 border-t border-white/[0.05] pt-8">
-                {[
-                  { v: <Counter target={50} suffix="k+" />, l: "Plants identified" },
-                  { v: "4.9★", l: "Beta rating" },
-                  { v: <Counter target={2400} suffix="+" />, l: "On waitlist" },
-                ].map((s,i) => (
-                  <div key={i} className="text-center">
-                    <div className="text-2xl font-bold" style={{ WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundImage:"linear-gradient(135deg,#ffffff,#a3e635)" }}>{s.v}</div>
-                    <div className="mt-1 text-xs text-slate-500">{s.l}</div>
-                  </div>
-                ))}
-              </motion.div>
-            </motion.div>
-
-            <motion.div style={{ y: mockupY }} className="relative z-10 lg:justify-self-end">
-              <PhoneMockup />
-            </motion.div>
-          </section>
+  return (
+    <section className="hero" aria-label="Introduction">
+      <div className="hero-inner">
+        <div className={`hero-topline${show(1) ? " hero-topline--in" : ""}`}>
+          <span className="hero-chip">
+            <IconSpark />
+            Open for remote / UAE roles
+          </span>
+          <button className="hero-chip hero-chip--ghost" onClick={onOpenPalette} type="button">
+            <IconSearch />
+            Search sections
+          </button>
         </div>
 
-        {/* Marquee */}
-        <div className="relative z-10 mt-20"><Marquee /></div>
-
-        <div className="relative z-10 mx-auto max-w-7xl px-6 pb-32 lg:px-8">
-
-          {/* ══ FEATURES ══ */}
-          <section id="features" className="mt-28">
-            <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">Features</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Everything your plants need.</h2>
-              <p className="mt-4 max-w-lg text-slate-400">AI identification, smart care reminders, AR preview, and disease detection — built for beginners and plant nerds alike.</p>
-            </motion.div>
-            <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}
-              className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4" style={{ perspective:"1200px" }}>
-              {FEATURES.map((f) => <FeatureCard key={f.title} f={f} />)}
-            </motion.div>
-          </section>
-
-          {/* ══ HOW IT WORKS ══ */}
-          <section id="how" className="mt-28">
-            <div className="grid gap-8 lg:grid-cols-2">
-              <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}
-                className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015] p-8 backdrop-blur-sm">
-                <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-emerald-500/8 blur-2xl" />
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">How it works</p>
-                <h2 className="mt-3 text-2xl font-bold text-white">Three steps to thriving plants.</h2>
-                <div className="mt-8 space-y-3">
-                  {STEPS.map((s,i) => (
-                    <motion.div key={s.title}
-                      initial={{ opacity:0, x:-24 }} whileInView={{ opacity:1, x:0 }}
-                      viewport={{ once:true }} transition={{ duration:0.5, delay:i*0.12, ease }}
-                      className="group flex gap-4 overflow-hidden rounded-xl border border-white/[0.05] bg-white/[0.02] p-4 transition-all hover:border-emerald-500/20 hover:bg-emerald-500/4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-slate-950 shadow-lg transition group-hover:scale-110"
-                        style={{ background:"linear-gradient(135deg,#34d399,#84cc16)" }}>{i+1}</div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">{s.title}</h3>
-                        <p className="mt-1 text-sm leading-6 text-slate-400">{s.text}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}
-                transition={{ delay:0.15 }}
-                className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-emerald-500/12 p-8"
-                style={{ background:"linear-gradient(135deg,rgba(16,185,129,0.055) 0%,rgba(132,204,22,0.03) 50%,rgba(255,255,255,0.008) 100%)" }}>
-                <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-emerald-500/8 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-8 -right-8 h-36 w-36 rounded-full bg-lime-500/8 blur-2xl" />
-                <div className="relative">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/18 bg-emerald-400/7 px-3 py-1.5 text-[12px] font-medium text-emerald-300">
-                    <Sparkles className="h-3 w-3" /> Launch ready
-                  </div>
-                  <h3 className="mt-6 text-3xl font-bold leading-tight text-white">Ready for<br />your launch.</h3>
-                  <p className="mt-4 text-slate-400">Swap copy, colors, and mockups, then plug in your waitlist. Deploy to Vercel in minutes.</p>
-                  <ul className="mt-6 space-y-3">
-                    {["Zero external UI dependencies","Pure Tailwind + Framer Motion","SSR-safe, Vercel-ready","Accessible and mobile-first"].map((p) => (
-                      <li key={p} className="flex items-center gap-2.5 text-sm text-slate-300">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />{p}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="relative mt-8 flex flex-wrap gap-3">
-                  <button onClick={() => scrollTo("waitlist")}
-                    className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/18 transition hover:scale-[1.02] active:scale-95 focus-visible:outline-none"
-                    style={{ background:"linear-gradient(135deg,#34d399,#84cc16)" }}>Get started</button>
-                  <button onClick={() => scrollTo("pricing")}
-                    className="rounded-full border border-white/[0.08] px-5 py-2.5 text-sm text-white transition hover:bg-white/[0.04] focus-visible:outline-none">View pricing</button>
-                </div>
-              </motion.div>
-            </div>
-          </section>
-
-          {/* ══ PRICING ══ */}
-          <section id="pricing" className="mt-28">
-            <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }} className="text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">Pricing</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Simple, transparent pricing.</h2>
-              <p className="mx-auto mt-4 max-w-md text-slate-400">Start free. Upgrade when you're ready. No hidden fees, no surprises.</p>
-              <div className="mt-7 inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.025] p-1 backdrop-blur-sm">
-                {([["Monthly", false], ["Annual", true]] as [string, boolean][]).map(([label, val]) => (
-                  <button key={label} onClick={() => setAnnual(val)}
-                    aria-pressed={annual === val}
-                    className={`flex items-center gap-2 rounded-full px-5 py-1.5 text-sm font-medium transition focus-visible:outline-none ${annual === val ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-white"}`}>
-                    {label}
-                    {val && <span className="rounded-full bg-emerald-400/12 px-2 py-0.5 text-[10px] font-bold text-emerald-400">−20%</span>}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}
-              className="mt-10 grid gap-5 md:grid-cols-3">
-              {PLANS.map((plan) => {
-                const price = annual ? plan.price.annual : plan.price.monthly;
-                return (
-                  <motion.div key={plan.name} variants={scaleIn}
-                    className={`relative flex flex-col rounded-2xl p-px ${plan.highlight ? "" : "border border-white/[0.06]"}`}
-                    style={plan.highlight ? { background:"linear-gradient(160deg,rgba(52,211,153,0.45) 0%,rgba(163,230,53,0.18) 50%,rgba(255,255,255,0.04) 100%)" } : {}}>
-                    {plan.badge && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-[11px] font-bold text-slate-950 shadow-lg shadow-emerald-500/25"
-                        style={{ background:"linear-gradient(135deg,#34d399,#84cc16)" }}>{plan.badge}</div>
-                    )}
-                    <div className={`flex h-full flex-col rounded-[calc(1rem-1px)] p-6 ${plan.highlight ? "bg-[#071511]" : "bg-[#060a14]"}`}>
-                      <p className="text-sm font-semibold text-slate-300">{plan.name}</p>
-                      <div className="mt-4 flex items-end gap-1">
-                        <span className="text-5xl font-bold tracking-tight text-white">${price}</span>
-                        {price > 0 && <span className="mb-1.5 text-sm text-slate-500">/mo</span>}
-                      </div>
-                      <p className="mt-2 text-sm text-slate-500">{plan.description}</p>
-                      <ul className="mt-6 flex-1 space-y-2.5">
-                        {plan.features.map((f) => (
-                          <li key={f.text} className="flex items-center gap-2.5 text-sm">
-                            {f.ok ? <Check className="h-4 w-4 shrink-0 text-emerald-400" /> : <Minus className="h-4 w-4 shrink-0 text-slate-700" />}
-                            <span className={f.ok ? "text-slate-300" : "text-slate-600"}>{f.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <button onClick={() => scrollTo("waitlist")}
-                        className={`mt-8 w-full rounded-full py-3 text-sm font-semibold transition focus-visible:outline-none active:scale-95 ${plan.highlight ? "text-slate-950 shadow-lg shadow-emerald-500/22 hover:opacity-90" : "border border-white/[0.08] text-white hover:bg-white/[0.04]"}`}
-                        style={plan.highlight ? { background:"linear-gradient(135deg,#34d399,#84cc16)" } : {}}>
-                        {plan.cta}
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </section>
-
-          {/* ══ TESTIMONIALS ══ */}
-          <section id="reviews" className="mt-28">
-            <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">Reviews</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Plant lovers already love it.</h2>
-            </motion.div>
-            <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}
-              className="mt-10 grid gap-5 md:grid-cols-3">
-              {TESTIMONIALS.map((t, i) => (
-                <motion.figure key={t.name} variants={scaleIn}
-                  whileHover={{ y:-4, transition:{ duration:0.2 } }}
-                  className="relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 backdrop-blur-sm">
-                  <div className="absolute inset-x-0 top-0 h-px"
-                    style={{ background:`linear-gradient(90deg,transparent,${i===0?"#34d399":i===1?"#a78bfa":"#60a5fa"},transparent)` }} />
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: t.rating }).map((_,j) => (
-                      <Star key={j} className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
-                    ))}
-                  </div>
-                  <blockquote className="mt-4 flex-1 text-sm leading-7 text-slate-400">"{t.text}"</blockquote>
-                  <figcaption className="mt-5 flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${t.grad} text-[11px] font-bold text-white shadow-lg`} aria-hidden>{t.initials}</div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{t.name}</p>
-                      <p className="text-xs text-slate-500">{t.role}</p>
-                    </div>
-                  </figcaption>
-                </motion.figure>
-              ))}
-            </motion.div>
-          </section>
-
-          {/* ══ FAQ ══ */}
-          <section id="faq" className="mt-28 grid gap-16 lg:grid-cols-[1fr_1.5fr]">
-            <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}
-              className="lg:sticky lg:top-28 lg:self-start">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">FAQ</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight">Common questions.</h2>
-              <p className="mt-4 text-slate-400">
-                Can't find what you're looking for?{" "}
-                <a href="mailto:hello@neroplant.app" className="text-emerald-400 underline underline-offset-4 transition hover:text-emerald-300 focus-visible:outline-none">Email us</a>.
-              </p>
-              <div className="mt-10 hidden lg:block">
-                <div className="h-32 w-32 rounded-full opacity-35 blur-2xl" style={{ background:"radial-gradient(circle,#34d399,transparent)" }} />
-              </div>
-            </motion.div>
-            <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }} transition={{ delay:0.1 }}>
-              {FAQS.map((f) => <FaqItem key={f.q} q={f.q} a={f.a} />)}
-            </motion.div>
-          </section>
-
-          {/* ══ WAITLIST CTA ══ */}
-          <section id="waitlist" className="mt-28">
-            <motion.div variants={scaleIn} initial="hidden" whileInView="visible" viewport={{ once:true, margin:"-80px" }}
-              className="relative overflow-hidden rounded-3xl border border-emerald-500/12 p-10 text-center md:p-16"
-              style={{ background:"linear-gradient(160deg,rgba(16,185,129,0.065) 0%,rgba(132,204,22,0.035) 50%,rgba(255,255,255,0.008) 100%)" }}>
-              <div className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-emerald-500/12 blur-[80px]" />
-              <div className="pointer-events-none absolute -bottom-16 -right-16 h-64 w-64 rounded-full bg-lime-500/8 blur-[60px]" />
-              <div className="pointer-events-none absolute inset-0 opacity-[0.022]"
-                style={{ backgroundImage:"linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)", backgroundSize:"48px 48px" }} />
-
-              <p className="relative text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">Waitlist</p>
-              <h2 className="relative mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Be first when we launch.</h2>
-              <p className="relative mx-auto mt-4 max-w-md text-lg text-slate-400">
-                Join 2,400+ plant lovers. Early access includes 3 months of Pro free — no credit card needed.
-              </p>
-
-              <AnimatePresence mode="wait">
-                {submitted ? (
-                  <motion.div key="ok" role="status" aria-live="polite"
-                    initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0 }}
-                    className="relative mx-auto mt-8 flex max-w-sm items-center justify-center gap-3 rounded-2xl border border-emerald-500/18 bg-emerald-500/7 px-6 py-4 text-emerald-300">
-                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
-                    <span>You're on the list! We'll be in touch soon.</span>
-                  </motion.div>
-                ) : (
-                  <motion.div key="form" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-                    className="relative mx-auto mt-8 max-w-md">
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <label htmlFor="wl-email" className="sr-only">Email address</label>
-                      <input id="wl-email" type="email" value={email}
-                        onChange={(e) => { setEmail(e.target.value); setEmailError(false); }}
-                        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                        placeholder="your@email.com" autoComplete="email" aria-invalid={emailError}
-                        className={`flex-1 rounded-full border bg-white/[0.035] px-5 py-3 text-sm text-white placeholder-slate-600 outline-none backdrop-blur-sm transition ${emailError ? "border-red-500/35 focus:border-red-400/55" : "border-white/[0.07] focus:border-emerald-500/35 focus:ring-2 focus:ring-emerald-500/8"}`}
-                      />
-                      <button onClick={handleSubmit}
-                        className="group inline-flex shrink-0 items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-slate-950 shadow-xl shadow-emerald-500/22 transition-all hover:scale-[1.02] hover:shadow-emerald-400/38 active:scale-95 focus-visible:outline-none"
-                        style={{ background:"linear-gradient(135deg,#34d399,#84cc16)" }}>
-                        Join waitlist
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </button>
-                    </div>
-                    {emailError && <p role="alert" className="mt-2 text-left text-xs text-red-400">Please enter a valid email address.</p>}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <p className="relative mt-5 text-xs text-slate-600">
-                No spam, ever. Unsubscribe anytime. By joining you agree to our{" "}
-                <a href="#" className="underline underline-offset-2 transition hover:text-slate-400 focus-visible:outline-none">Privacy Policy</a>.
-              </p>
-            </motion.div>
-          </section>
+        <div className={`hero-terminal${show(1) ? " hero-terminal--in" : ""}`}>
+          <span className="prompt-path">~/amir</span>
+          <span className="prompt-arrow">❯</span>
+          <span className="prompt-cmd">status</span>
+          <span className="prompt-cursor">{show(1) ? "█" : ""}</span>
         </div>
-      </main>
 
-      {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-white/[0.04] px-6 py-14">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background:"linear-gradient(135deg,#10b981,#84cc16)" }}>
-                  <Leaf className="h-4 w-4 text-slate-950" />
-                </div>
-                <span className="font-semibold text-white">NeroPlant</span>
-              </div>
-              <p className="mt-4 max-w-[180px] text-sm leading-6 text-slate-500">
-                AI-powered plant care for everyone. Identify, preview, and grow with confidence.
-              </p>
+        <h1 className={`hero-name${show(2) ? " hero-name--in" : ""}`}>
+          Amirhossein
+          <br />
+          <span className="hero-name-accent">Gholami</span>
+        </h1>
+
+        <div className={`hero-rotator${show(3) ? " hero-rotator--in" : ""}`} aria-live="polite">
+          <span className="hero-rotator-label">I build</span>
+          <span className="hero-rotator-phrase">{phrases[phraseIndex]}</span>
+        </div>
+
+        <p className={`hero-bio${show(4) ? " hero-bio--in" : ""}`}>
+          Backend Engineer specializing in performance optimization, production reliability, and systems that are easier to ship, operate, and trust.
+          I build with Python, Go, PostgreSQL, Redis, Docker, Linux, and the kind of deployment hygiene that keeps teams calm.
+        </p>
+
+        <div className={`hero-metrics${show(5) ? " hero-metrics--in" : ""}`}>
+          {[
+            ["60%", "query latency reduced"],
+            ["3+", "years production experience"],
+            ["20+", "projects and systems"],
+          ].map(([v, l]) => (
+            <div key={l} className="hero-metric">
+              <strong>{v}</strong>
+              <span>{l}</span>
             </div>
-            {[
-              { h:"Product", links:["Features","Pricing","Changelog","Roadmap"] },
-              { h:"Company", links:["About","Blog","Careers","Press"] },
-              { h:"Legal", links:["Privacy","Terms","Cookies","Contact"] },
-            ].map((col) => (
-              <nav key={col.h} aria-label={col.h}>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-600">{col.h}</p>
-                <ul className="mt-4 space-y-3">
-                  {col.links.map((l) => (
-                    <li key={l}>
-                      <a href="#" className="text-sm text-slate-500 transition hover:text-white focus-visible:outline-none">{l}</a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+          ))}
+        </div>
+
+        <div className={`hero-actions${show(5) ? " hero-actions--in" : ""}`}>
+          <a href="#projects" className="btn-primary">
+            Featured work
+            <span className="btn-icon">
+              <IconArrow />
+            </span>
+          </a>
+          <a href="#contact" className="btn-ghost">
+            Contact me
+          </a>
+        </div>
+
+        <div className={`hero-status${show(5) ? " hero-status--in" : ""}`}>
+          <span className="status-dot" />
+          <span>Currently building NeroPlant and improving production systems</span>
+        </div>
+      </div>
+
+      <div className={`hero-side${show(5) ? " hero-side--in" : ""}`}>
+        <div className="glass-card glass-card--big">
+          <div className="glass-card-label">Current focus</div>
+          <div className="glass-card-title">Backend + DevOps + Founder</div>
+          <p>
+            Systems engineering, deployment automation, clean APIs, and product thinking for real users.
+          </p>
+        </div>
+        <div className="glass-card">
+          <div className="glass-card-label">Primary stack</div>
+          <div className="glass-chip-list">
+            {["Python", "Django", "FastAPI", "PostgreSQL", "Redis", "Docker"].map((item) => (
+              <span key={item} className="glass-chip">
+                {item}
+              </span>
             ))}
           </div>
-          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/[0.04] pt-8 text-xs text-slate-600 sm:flex-row">
-            <p>© {new Date().getFullYear()} NeroPlant. All rights reserved.</p>
-            <p className="flex items-center gap-1.5">Built with <span className="text-emerald-500">♥</span> for plant lovers everywhere</p>
+        </div>
+      </div>
+
+      <div className="scroll-cue" aria-hidden="true">
+        <div className="scroll-line" />
+        <span>scroll</span>
+      </div>
+    </section>
+  );
+};
+
+const CountCard: FC<{
+  value: number;
+  suffix: string;
+  label: string;
+  note: string;
+  trigger: boolean;
+}> = ({ value, suffix, label, note, trigger }) => {
+  const n = useCountUp(value, trigger, 1100);
+  return (
+    <div className="impact-card">
+      <div className="impact-value">
+        {n}
+        <span>{suffix}</span>
+      </div>
+      <div className="impact-label">{label}</div>
+      <div className="impact-note">{note}</div>
+    </div>
+  );
+};
+
+const About: FC = () => {
+  const { ref, visible } = useInView(0.15);
+
+  return (
+    <section ref={ref} id="about" className={`section reveal${visible ? " reveal--in" : ""}`}>
+      <div className="eyebrow">About</div>
+      <h2 className="section-title">
+        Backend engineer with a founder’s mindset
+        <em> and a production-first way of building.</em>
+      </h2>
+
+      <div className="about-grid">
+        <div className="panel panel--intro">
+          <p>
+            I build systems that matter in production: APIs, background workers, databases, and deployment flows that stay stable under real load.
+            My work combines backend engineering, DevOps, and product awareness.
+          </p>
+          <p>
+            The portfolio is centered on the story from my CV: production backend work at LogiOwn, growing into DevOps responsibilities at Danoup Guys,
+            and now building NeroPlant as a founder and full-stack developer. fileciteturn1file0L29-L33 fileciteturn1file0L38-L43 fileciteturn1file0L52-L58
+          </p>
+          <blockquote>
+            <span>“</span>
+            Simplicity is the soul of efficiency.
+            <cite>— Austin Freeman</cite>
+          </blockquote>
+        </div>
+
+        <div className="panel panel--meta">
+          <div className="meta-row">
+            <span>Location</span>
+            <strong>Yerevan, Armenia · Remote</strong>
+          </div>
+          <div className="meta-row">
+            <span>Languages</span>
+            <strong>English · German · Persian</strong>
+          </div>
+          <div className="meta-row">
+            <span>Focus</span>
+            <strong>Backend · DevOps · Product build</strong>
+          </div>
+          <div className="meta-row">
+            <span>Status</span>
+            <strong className="meta-status"><span />Open to full remote</strong>
           </div>
         </div>
-      </footer>
 
-      <style jsx global>{`
-        @keyframes shimmer {
-          0%,100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+        <div className="panel panel--stats">
+          {IMPACT.map((item) => (
+            <CountCard
+              key={item.label}
+              value={item.value}
+              suffix={item.suffix}
+              label={item.label}
+              note={item.note}
+              trigger={visible}
+            />
+          ))}
+        </div>
+
+        <div className="panel panel--social">
+          <a href="https://github.com/itsamirdev" target="_blank" rel="noreferrer" className="social-link">
+            <IconGithub />
+            <span>itsamirdev</span>
+          </a>
+          <a href="https://www.linkedin.com/in/amirhossein-gholami1/" target="_blank" rel="noreferrer" className="social-link">
+            <IconLinkedin />
+            <span>LinkedIn</span>
+          </a>
+          <a href="mailto:amirhosseindev@gmail.com" className="social-link">
+            <IconMail />
+            <span>amirhosseindev@gmail.com</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Timeline: FC = () => {
+  const { ref, visible } = useInView(0.12);
+
+  return (
+    <section ref={ref} id="experience" className={`section reveal${visible ? " reveal--in" : ""}`}>
+      <div className="eyebrow">Experience</div>
+      <h2 className="section-title">
+        The path from backend work
+        <em> to ownership and shipping.</em>
+      </h2>
+
+      <div className="timeline">
+        {EXPERIENCE.map((item, idx) => (
+          <article key={item.company + item.role} className={`timeline-item timeline-item--${idx % 2 === 0 ? "left" : "right"}`}>
+            <div className="timeline-dot" />
+            <div className="timeline-card">
+              <div className="timeline-head">
+                <div>
+                  <div className="timeline-company">{item.company}</div>
+                  <h3>{item.role}</h3>
+                </div>
+                <div className="timeline-period">
+                  <span>{item.period}</span>
+                  <span>{item.place}</span>
+                </div>
+              </div>
+              <ul>
+                {item.bullets.map((bullet) => (
+                  <li key={bullet}>
+                    <IconCheck />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const SkillGroup: FC<{ title: string; items: string[]; tone?: string }> = ({ title, items, tone }) => (
+  <div className="skill-box">
+    <div className="skill-box-top">
+      <span className="skill-box-title">{title}</span>
+      <span className="skill-box-tone" style={tone ? { color: tone } : undefined}>
+        {items.length} items
+      </span>
+    </div>
+    <div className="skill-chips">
+      {items.map((item) => (
+        <span key={item} className="skill-chip">
+          {item}
+        </span>
+      ))}
+    </div>
+  </div>
+);
+
+const Stack: FC = () => {
+  const { ref, visible } = useInView(0.1);
+  return (
+    <section ref={ref} id="stack" className={`section reveal${visible ? " reveal--in" : ""}`}>
+      <div className="eyebrow">Stack</div>
+      <h2 className="section-title">
+        Tools I actually use
+        <em> in production.</em>
+      </h2>
+
+      <div className="stack-grid">
+        <SkillGroup title="Backend" items={SKILLS.backend} tone="#60a5fa" />
+        <SkillGroup title="Data" items={SKILLS.data} tone="#a78bfa" />
+        <SkillGroup title="DevOps" items={SKILLS.devops} tone="#34d399" />
+        <SkillGroup title="Frontend" items={SKILLS.frontend} tone="#fbbf24" />
+        <SkillGroup title="Testing" items={SKILLS.testing} tone="#fb7185" />
+      </div>
+    </section>
+  );
+};
+
+const FeaturedProjectCard: FC<{ project: Project; index: number }> = ({ project, index }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { ref, visible } = useInView(0.08);
+  const color = TYPE_COLOR[project.type] || "#60a5fa";
+
+  const onMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${((e.clientX - rect.left) / rect.width) * 100}%`);
+    el.style.setProperty("--my", `${((e.clientY - rect.top) / rect.height) * 100}%`);
+  }, []);
+
+  return (
+    <article
+      ref={ref}
+      className={`project-card project-card--${project.featured ? "featured" : "regular"}`}
+      style={{ transitionDelay: `${index * 80}ms` }}
+    >
+      <div ref={cardRef} className="project-inner" onMouseMove={onMouseMove}>
+        <div className="project-spotlight" aria-hidden="true" />
+        <div className="project-head">
+          <span className="project-tag" style={{ color, borderColor: `${color}33`, background: `${color}12` }}>
+            {project.type}
+          </span>
+          <span className="project-year">{project.year}</span>
+        </div>
+
+        <div className="project-metric" style={{ color }}>
+          <strong>{project.metric}</strong>
+          <span>{project.metricLabel}</span>
+        </div>
+
+        <h3>{project.title}</h3>
+        <p className="project-subtitle">{project.subtitle}</p>
+        <p className="project-desc">{project.desc}</p>
+
+        <div className="project-tags" aria-label="Technologies">
+          {project.tags.map((tag) => (
+            <span key={tag} className="project-chip">
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <a href={project.link} target="_blank" rel="noreferrer" className="project-link">
+          <span>{project.featured ? "Open live project" : "View source"}</span>
+          <span className="project-link-icon">
+            <IconArrow />
+          </span>
+        </a>
+      </div>
+    </article>
+  );
+};
+
+const Projects: FC = () => {
+  const { ref, visible } = useInView(0.1);
+  return (
+    <section ref={ref} id="projects" className={`section reveal${visible ? " reveal--in" : ""}`}>
+      <div className="eyebrow">Projects</div>
+      <h2 className="section-title">
+        A portfolio built around
+        <em> impact, not filler.</em>
+      </h2>
+
+      <div className="projects-grid">
+        {PROJECTS.map((project, index) => (
+          <FeaturedProjectCard key={project.id} project={project} index={index} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const Writing: FC = () => {
+  const { ref, visible } = useInView(0.15);
+  return (
+    <section ref={ref} id="writing" className={`section reveal${visible ? " reveal--in" : ""}`}>
+      <div className="eyebrow">Writing</div>
+      <h2 className="section-title">
+        Technical articles that
+        <em> support the engineering story.</em>
+      </h2>
+
+      <div className="writing-grid">
+        {WRITING.map((item) => (
+          <a key={item.title} href={item.link} target="_blank" rel="noreferrer" className="writing-card">
+            <div className="writing-top">
+              <span className="writing-tag">{item.tag}</span>
+              <span className="writing-arrow">
+                <IconArrow />
+              </span>
+            </div>
+            <h3>{item.title}</h3>
+            <p>{item.excerpt}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const Contact: FC = () => {
+  const { ref, visible } = useInView(0.2);
+
+  return (
+    <section ref={ref} id="contact" className={`contact reveal${visible ? " reveal--in" : ""}`}>
+      <div className="contact-inner">
+        <div className="eyebrow">Contact</div>
+        <h2 className="section-title contact-title">
+          Let’s build something
+          <em> reliable and worth shipping.</em>
+        </h2>
+        <p className="contact-sub">
+          Open to backend, DevOps, and founder-friendly product roles. The best opportunities are the ones where performance, reliability,
+          and shipping speed all matter at once.
+        </p>
+
+        <div className="contact-actions">
+          <a href="mailto:amirhosseindev@gmail.com" className="btn-primary">
+            <IconMail />
+            Send email
+          </a>
+          <a href="https://www.linkedin.com/in/amirhossein-gholami1/" target="_blank" rel="noreferrer" className="btn-ghost">
+            <IconLinkedin />
+            LinkedIn
+          </a>
+          <a href="https://github.com/itsamirdev" target="_blank" rel="noreferrer" className="btn-ghost">
+            <IconGithub />
+            GitHub
+          </a>
+        </div>
+
+        <div className="terminal">
+          <div className="terminal-bar" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span className="terminal-title">contact.sh</span>
+          </div>
+          <div className="terminal-body">
+            <div className="terminal-line"><span className="muted">$</span> whoami</div>
+            <div className="terminal-line">Backend Engineer · DevOps Engineer · Founder</div>
+            <div className="terminal-line"><span className="muted">$</span> stack</div>
+            <div className="terminal-line">Python · Django · FastAPI · PostgreSQL · Redis · Docker · Linux</div>
+            <div className="terminal-line"><span className="muted">$</span> status</div>
+            <div className="terminal-line terminal-line--good">Open to full remote</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Dock: FC<{ onOpenPalette: () => void }> = ({ onOpenPalette }) => (
+  <div className="dock" aria-label="Quick actions">
+    {[
+      ["About", "about"],
+      ["Projects", "projects"],
+      ["Contact", "contact"],
+    ].map(([label, id]) => (
+      <button key={label} type="button" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}>
+        {label}
+      </button>
+    ))}
+    <button type="button" onClick={onOpenPalette}>
+      Command
+    </button>
+  </div>
+);
+
+const CommandPalette: FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
+  const items = useMemo(
+    () => [
+      { label: "About", href: "#about" },
+      { label: "Experience", href: "#experience" },
+      { label: "Projects", href: "#projects" },
+      { label: "Stack", href: "#stack" },
+      { label: "Writing", href: "#writing" },
+      { label: "Contact", href: "#contact" },
+      { label: "GitHub", href: "https://github.com/itsamirdev", external: true },
+      { label: "LinkedIn", href: "https://www.linkedin.com/in/amirhossein-gholami1/", external: true },
+    ],
+    []
+  );
+
+  const jump = (href: string, external?: boolean) => {
+    if (external) {
+      window.open(href, "_blank", "noreferrer");
+    } else {
+      document.querySelector(href)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="palette-backdrop" role="dialog" aria-modal="true" aria-label="Command palette" onClick={onClose}>
+      <div className="palette" onClick={(e) => e.stopPropagation()}>
+        <div className="palette-search">
+          <IconSearch />
+          <span>Search sections or open links</span>
+          <kbd>Esc</kbd>
+        </div>
+        <div className="palette-list">
+          {items.map((item) => (
+            <button key={item.label} className="palette-item" type="button" onClick={() => jump(item.href, item.external)}>
+              <span>{item.label}</span>
+              <span>{item.external ? "↗" : item.href.replace("#", "")}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Footer: FC = () => (
+  <footer className="footer">
+    <span className="footer-brand">
+      AG<span className="logo-dot">.</span>
+    </span>
+    <span className="footer-copy">© {new Date().getFullYear()} Amirhossein Gholami</span>
+    <a href="https://github.com/itsamirdev" target="_blank" rel="noreferrer" className="footer-link">
+      github ↗
+    </a>
+  </footer>
+);
+
+export default function Portfolio() {
+  const y = useScrollY();
+  const reducedMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 40);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if ((e.metaKey || e.ctrlKey) && key === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+      if (key === "escape") setPaletteOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const openPalette = () => setPaletteOpen(true);
+
+  return (
+    <>
+      <Head>
+        <title>Amirhossein Gholami — Backend & DevOps Engineer</title>
+        <meta
+          name="description"
+          content="Backend engineer and DevOps-focused developer building production systems with Python, Go, PostgreSQL, Redis, Docker, and Linux."
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta property="og:title" content="Amirhossein Gholami — Backend & DevOps Engineer" />
+        <meta
+          property="og:description"
+          content="Production systems, performance optimization, deployment automation, and founder-level product thinking."
+        />
+        <meta property="og:type" content="website" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
+
+      <style>{`
+        :root{
+          --bg:#090d16;
+          --bg-2:#0d1321;
+          --card:#111827;
+          --card-2:#152033;
+          --line:rgba(255,255,255,0.08);
+          --line-2:rgba(255,255,255,0.14);
+          --text:#f8fafc;
+          --muted:#94a3b8;
+          --muted-2:#cbd5e1;
+          --accent:#60a5fa;
+          --accent-2:#8b5cf6;
+          --accent-3:#22c55e;
+          --shadow:0 24px 80px rgba(0,0,0,.35);
+          --radius:24px;
+          --radius-sm:14px;
+          --pad:clamp(18px, 4vw, 72px);
+          --display:"Archivo",system-ui,sans-serif;
+          --body:"Space Grotesk",system-ui,sans-serif;
+          --mono:"JetBrains Mono",monospace;
+          --ease:cubic-bezier(.23,1,.32,1);
+        }
+
+        *{box-sizing:border-box}
+        html{scroll-behavior:smooth;font-size:16px}
+        html,body,#__next{min-height:100%;background:#020617}
+        body{
+          margin:0;
+          background:#020617;
+          color:var(--text);
+          font-family:var(--body);
+          -webkit-font-smoothing:antialiased;
+          text-rendering:optimizeLegibility;
+          overflow-x:hidden;
+          position:relative;
+        }
+        .page-shell{
+          position:relative;
+          z-index:1;
+        }
+        .site-bg{
+          position:fixed;
+          inset:0;
+          z-index:0;
+          pointer-events:none;
+          overflow:hidden;
+          background:#020617;
+        }
+        .site-bg::before{
+          content:"";
+          position:absolute;
+          inset:-20%;
+          background:
+            radial-gradient(circle at 15% 10%, rgba(96,165,250,.16), transparent 28%),
+            radial-gradient(circle at 85% 0%, rgba(139,92,246,.12), transparent 28%),
+            radial-gradient(circle at 75% 85%, rgba(34,197,94,.08), transparent 26%);
+          filter:blur(24px);
+        }
+        .site-bg::after{
+          content:"";
+          position:absolute;
+          inset:0;
+          background-image:
+            linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+          background-size:56px 56px;
+          opacity:.22;
+          mask-image:linear-gradient(180deg, rgba(0,0,0,.7), transparent 92%);
+        }
+        a{color:inherit;text-decoration:none}
+        button,input{font:inherit}
+        ::selection{background:rgba(96,165,250,.35);color:#fff}
+        :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+
+        .nav{
+          position:fixed;top:0;left:0;right:0;z-index:100;
+          display:flex;align-items:center;justify-content:space-between;
+          padding:14px var(--pad);
+          backdrop-filter:blur(0px);
+          border-bottom:1px solid transparent;
+          transition:background .25s var(--ease),border-color .25s var(--ease),backdrop-filter .25s var(--ease);
+        }
+        .nav--stuck{
+          background:rgba(9,13,22,.72);
+          backdrop-filter:blur(22px) saturate(140%);
+          border-bottom-color:var(--line);
+        }
+        .logo{
+          display:inline-flex;align-items:center;gap:2px;
+          font-family:var(--display);font-weight:800;letter-spacing:-.04em;
+          font-size:20px;
+        }
+        .logo-dot{color:var(--accent)}
+        .nav-links{display:flex;align-items:center;gap:10px}
+        .nav-link{
+          background:transparent;border:0;color:var(--muted);
+          padding:10px 12px;border-radius:12px;cursor:pointer;
+          transition:color .18s var(--ease),background .18s var(--ease);
+        }
+        .nav-link:hover{color:var(--text);background:rgba(255,255,255,.04)}
+        .nav-ghost{
+          display:inline-flex;align-items:center;gap:8px;
+          padding:10px 14px;border:1px solid var(--line-2);border-radius:12px;
+          background:rgba(255,255,255,.02);
+          color:var(--muted-2);cursor:pointer;
+          transition:all .18s var(--ease);
+        }
+        .nav-ghost:hover{border-color:rgba(96,165,250,.35);color:var(--text);background:rgba(96,165,250,.08)}
+        .nav-ghost kbd,.palette-search kbd{
+          font-family:var(--mono);font-size:11px;
+          padding:4px 6px;border-radius:8px;
+          background:rgba(255,255,255,.05);border:1px solid var(--line);
+          color:var(--muted-2);
+        }
+        .burger{
+          display:none;flex-direction:column;gap:5px;
+          background:transparent;border:0;cursor:pointer;padding:8px;
+          min-width:44px;min-height:44px;align-items:center;justify-content:center;
+        }
+        .burger span{display:block;width:22px;height:1.5px;background:var(--muted-2);border-radius:999px}
+        .mob-menu{
+          position:fixed;top:64px;left:0;right:0;z-index:99;
+          padding:14px var(--pad) 18px;
+          background:rgba(9,13,22,.92);
+          backdrop-filter:blur(18px);
+          border-bottom:1px solid var(--line);
+          display:flex;flex-direction:column;gap:8px;
+          transform:translateY(-8px);opacity:0;pointer-events:none;
+          transition:all .22s var(--ease);
+        }
+        .mob-menu--open{transform:none;opacity:1;pointer-events:auto}
+        .mob-link{
+          display:flex;align-items:center;gap:8px;
+          min-height:44px;padding:12px 14px;border-radius:14px;
+          background:rgba(255,255,255,.03);border:1px solid var(--line);
+          color:var(--text);text-align:left;cursor:pointer;
+        }
+        .mob-link--palette{justify-content:flex-start}
+
+        .hero{
+          position:relative;
+          min-height:88svh;
+          padding:88px var(--pad) 56px;
+          display:grid;
+          grid-template-columns:1.25fr .75fr;
+          gap:28px;
+          align-items:center;
+          overflow:hidden;
+        }
+        .hero-inner{
+          position:relative;z-index:1;max-width:860px
+        }
+        .hero-topline{
+          display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px;
+          opacity:0;transform:translateY(12px);
+          transition:opacity .55s var(--ease),transform .55s var(--ease);
+        }
+        .hero-topline--in{opacity:1;transform:none}
+        .hero-chip{
+          display:inline-flex;align-items:center;gap:8px;
+          min-height:40px;padding:10px 14px;border-radius:999px;
+          background:rgba(255,255,255,.04);border:1px solid var(--line);
+          color:var(--muted-2);
+        }
+        .hero-chip--ghost{cursor:pointer;background:rgba(255,255,255,.02)}
+        .hero-terminal{
+          display:flex;align-items:center;gap:8px;
+          margin-bottom:18px;
+          font-family:var(--mono);font-size:13px;color:var(--muted);
+          opacity:0;transform:translateY(10px);
+          transition:opacity .55s var(--ease),transform .55s var(--ease);
+        }
+        .hero-terminal--in{opacity:1;transform:none}
+        .prompt-path{color:#86efac}
+        .prompt-cmd{color:var(--accent)}
+        .prompt-cursor{color:#dbeafe}
+        .hero-name{
+          margin:0;
+          font-family:var(--display);
+          font-size:clamp(54px, 8vw, 106px);
+          line-height:.92;
+          letter-spacing:-.06em;
+          opacity:0;transform:translateY(22px);
+          transition:opacity .65s var(--ease),transform .65s var(--ease);
+        }
+        .hero-name--in{opacity:1;transform:none}
+        .hero-name-accent{
+          background:linear-gradient(90deg, #dbeafe 0%, #60a5fa 50%, #a78bfa 100%);
+          -webkit-background-clip:text;background-clip:text;color:transparent;
+        }
+        .hero-rotator{
+          display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+          margin-top:18px;margin-bottom:20px;
+          opacity:0;transform:translateY(12px);
+          transition:opacity .55s var(--ease),transform .55s var(--ease);
+        }
+        .hero-rotator--in{opacity:1;transform:none}
+        .hero-rotator-label{
+          font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.18em;
+        }
+        .hero-rotator-phrase{
+          font-family:var(--display);font-size:clamp(22px, 2.6vw, 34px);font-weight:700;
+          color:var(--text);
+        }
+        .hero-bio{
+          max-width:720px;
+          margin:0 0 28px;
+          font-size:18px;
+          line-height:1.85;
+          color:var(--muted-2);
+          opacity:0;transform:translateY(12px);
+          transition:opacity .55s var(--ease),transform .55s var(--ease);
+        }
+        .hero-bio--in{opacity:1;transform:none}
+        .hero-metrics{
+          display:grid;grid-template-columns:repeat(3, minmax(0,1fr));
+          gap:12px;margin-bottom:24px;
+          opacity:0;transform:translateY(12px);
+          transition:opacity .55s var(--ease),transform .55s var(--ease);
+        }
+        .hero-metrics--in{opacity:1;transform:none}
+        .hero-metric{
+          padding:16px 18px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--line);
+        }
+        .hero-metric strong{
+          display:block;font-family:var(--display);font-size:28px;letter-spacing:-.04em;margin-bottom:4px;
+        }
+        .hero-metric span{
+          display:block;font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;
+        }
+        .hero-actions{
+          display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;
+          opacity:0;transform:translateY(10px);
+          transition:opacity .55s var(--ease),transform .55s var(--ease);
+        }
+        .hero-actions--in{opacity:1;transform:none}
+        .btn-primary,.btn-ghost{
+          display:inline-flex;align-items:center;justify-content:center;gap:8px;
+          min-height:48px;padding:14px 20px;border-radius:14px;cursor:pointer;
+          transition:transform .18s var(--ease),border-color .18s var(--ease),background .18s var(--ease),box-shadow .18s var(--ease);
+        }
+        .btn-primary{
+          border:0;background:linear-gradient(135deg, #60a5fa 0%, #8b5cf6 100%);
+          color:white;font-weight:600;box-shadow:0 18px 40px rgba(96,165,250,.18);
+        }
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 22px 50px rgba(96,165,250,.24)}
+        .btn-ghost{
+          border:1px solid var(--line-2);background:rgba(255,255,255,.02);color:var(--muted-2)
+        }
+        .btn-ghost:hover{transform:translateY(-2px);border-color:rgba(96,165,250,.35);color:var(--text);background:rgba(96,165,250,.08)}
+        .btn-icon{display:inline-flex;transition:transform .18s var(--ease)}
+        .btn-primary:hover .btn-icon{transform:translate(2px,-2px)}
+        .hero-status{
+          display:flex;align-items:center;gap:8px;
+          font-family:var(--mono);font-size:12px;color:var(--muted);
+          opacity:0;transition:opacity .55s var(--ease);
+        }
+        .hero-status--in{opacity:1}
+        .status-dot{
+          width:8px;height:8px;border-radius:999px;background:#22c55e;
+          box-shadow:0 0 0 0 rgba(34,197,94,.35);
+          animation:pulse 2.4s ease-in-out infinite;
+        }
+        .hero-side{
+          position:relative;z-index:1;
+          display:grid;gap:14px;align-self:stretch;align-content:center;grid-template-columns:1fr;
+          opacity:0;transform:translateY(18px);
+          transition:opacity .55s var(--ease),transform .55s var(--ease);
+        }
+        .hero-side--in{opacity:1;transform:none}
+        .glass-card{
+          padding:22px;border-radius:24px;background:rgba(255,255,255,.05);
+          border:1px solid var(--line);
+          backdrop-filter:blur(12px) saturate(140%);
+          box-shadow:var(--shadow);
+        }
+        .glass-card--big{padding:28px}
+        .glass-card-label{
+          font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;margin-bottom:8px
+        }
+        .glass-card-title{
+          font-family:var(--display);font-size:28px;line-height:1.05;letter-spacing:-.04em;margin-bottom:10px
+        }
+        .glass-card p{margin:0;color:var(--muted-2);line-height:1.7}
+        .glass-chip-list{display:flex;flex-wrap:wrap;gap:8px}
+        .glass-chip{
+          display:inline-flex;padding:8px 10px;border-radius:999px;
+          background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted-2);
+          font-size:12px
+        }
+        .scroll-cue{
+          position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+          display:flex;flex-direction:column;align-items:center;gap:8px;
+          animation:fadeUp 1s ease 2.2s both;
+          pointer-events:none;
+        }
+        .scroll-line{
+          width:1.5px;height:44px;border-radius:999px;
+          background:linear-gradient(to bottom, var(--accent), transparent);
+          animation:scrollPulse 2s ease-in-out infinite;
+        }
+        .scroll-cue span{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em}
+
+        .section{position:relative;padding:88px var(--pad);max-width:1380px;margin:0 auto}
+        .section, .contact, .hero{background:transparent}
+        .eyebrow{
+          display:flex;align-items:center;gap:10px;margin-bottom:16px;
+          font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#93c5fd
+        }
+        .eyebrow::before{content:"";width:24px;height:1.5px;border-radius:999px;background:linear-gradient(90deg, var(--accent), var(--accent-2))}
+        .section-title{
+          margin:0 0 36px;
+          font-family:var(--display);
+          font-size:clamp(32px, 5vw, 56px);
+          line-height:1.05;
+          letter-spacing:-.05em;
+        }
+        .section-title em{font-style:normal;color:#93c5fd}
+
+        .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+        .reveal--in{opacity:1;transform:none}
+
+        .about-grid{
+          display:grid;grid-template-columns:1.4fr .9fr;gap:14px;
+        }
+        .panel{
+          background:rgba(255,255,255,.04);
+          border:1px solid var(--line);
+          border-radius:var(--radius);
+          box-shadow:var(--shadow);
+          overflow:hidden;
+        }
+        .panel--intro{padding:28px}
+        .panel--intro p{margin:0 0 16px;color:var(--muted-2);line-height:1.85;font-size:15px}
+        .panel--intro blockquote{
+          margin:22px 0 0;padding:18px 18px 16px 18px;border-left:3px solid var(--accent);
+          background:rgba(96,165,250,.06);border-radius:0 16px 16px 0;
+        }
+        .panel--intro blockquote span{display:block;font-family:var(--display);font-size:42px;line-height:.7;color:var(--accent);margin-bottom:4px}
+        .panel--intro cite{display:block;margin-top:10px;font-family:var(--mono);font-size:11px;font-style:normal;color:var(--muted)}
+        .panel--meta{padding:16px}
+        .meta-row{
+          display:flex;align-items:center;justify-content:space-between;gap:10px;
+          padding:16px 12px;border-bottom:1px solid var(--line);
+        }
+        .meta-row:last-child{border-bottom:0}
+        .meta-row span{color:var(--muted);font-size:12px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase}
+        .meta-row strong{font-size:14px;font-weight:600;color:var(--text)}
+        .meta-status{display:flex;align-items:center;gap:8px;color:#86efac!important}
+        .meta-status span{
+          width:8px;height:8px;border-radius:999px;background:#22c55e;
+          box-shadow:0 0 0 0 rgba(34,197,94,.34);animation:pulse 2.4s ease-in-out infinite;
+        }
+        .panel--stats{
+          grid-column:1 / span 2;
+          display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:14px;
+          background:transparent;border:0;box-shadow:none;
+        }
+        .impact-card{
+          padding:22px;border-radius:22px;background:rgba(255,255,255,.04);border:1px solid var(--line);
+          box-shadow:var(--shadow);
+        }
+        .impact-value{
+          font-family:var(--display);font-size:44px;letter-spacing:-.05em;line-height:1;margin-bottom:6px;color:#dbeafe;
+        }
+        .impact-value span{font-size:.6em}
+        .impact-label{font-weight:600;margin-bottom:4px}
+        .impact-note{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+        .panel--social{
+          grid-column:1 / span 2;
+          display:flex;gap:10px;flex-wrap:wrap;padding:16px;background:transparent;border:0;box-shadow:none;
+        }
+        .social-link{
+          display:inline-flex;align-items:center;gap:8px;min-height:44px;
+          padding:12px 16px;border-radius:14px;background:rgba(255,255,255,.04);
+          border:1px solid var(--line);color:var(--muted-2);transition:all .18s var(--ease)
+        }
+        .social-link:hover{border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.08);color:var(--text)}
+
+        .timeline{
+          position:relative;padding-left:28px;
+          display:grid;gap:18px;
+        }
+        .timeline::before{
+          content:"";position:absolute;left:12px;top:2px;bottom:2px;width:2px;border-radius:999px;
+          background:linear-gradient(180deg, rgba(96,165,250,.9), rgba(139,92,246,.4), rgba(34,197,94,.55));
+        }
+        .timeline-item{position:relative}
+        .timeline-dot{
+          position:absolute;left:-22px;top:24px;width:12px;height:12px;border-radius:999px;background:#60a5fa;
+          box-shadow:0 0 0 5px rgba(96,165,250,.16), 0 0 24px rgba(96,165,250,.22);
+        }
+        .timeline-card{
+          background:rgba(255,255,255,.04);
+          border:1px solid var(--line);
+          border-radius:24px;padding:24px;
+          box-shadow:var(--shadow);
+        }
+        .timeline-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
+        .timeline-company{font-family:var(--mono);font-size:11px;color:#93c5fd;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+        .timeline-card h3{margin:0;font-family:var(--display);font-size:24px;letter-spacing:-.04em}
+        .timeline-period{display:flex;flex-direction:column;gap:4px;align-items:flex-end;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+        .timeline-card ul{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+        .timeline-card li{display:flex;gap:10px;align-items:flex-start;color:var(--muted-2);line-height:1.7}
+        .timeline-card li svg{flex:0 0 auto;margin-top:3px;color:#86efac}
+
+        .stack-grid{
+          display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;
+        }
+        .skill-box{
+          background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:24px;padding:22px;
+          box-shadow:var(--shadow);
+        }
+        .skill-box-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px}
+        .skill-box-title{font-family:var(--display);font-size:22px;letter-spacing:-.04em}
+        .skill-box-tone{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
+        .skill-chips{display:flex;flex-wrap:wrap;gap:8px}
+        .skill-chip{
+          display:inline-flex;align-items:center;min-height:36px;padding:8px 10px;border-radius:999px;
+          background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted-2);font-size:12px
+        }
+
+        .projects-grid{
+          display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px;margin-top:18px;
+        }
+        .project-card{
+          grid-column:span 6;
+          overflow:hidden;border-radius:28px;
+          opacity:1;transform:none;
+          transition:transform .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease);
+        }
+        .project-card--featured{grid-column:span 12}
+        .project-inner{
+          position:relative;height:100%;min-height:100px;
+          padding:28px;border-radius:inherit;background:rgba(255,255,255,.04);
+          border:1px solid var(--line);
+          box-shadow:var(--shadow);
+          overflow:hidden;
+          transition:transform .25s var(--ease), border-color .25s var(--ease), box-shadow .25s var(--ease);
+        }
+        .project-card--featured .project-inner{
+          min-height:280px;
+          display:grid;
+          grid-template-columns:1fr .9fr;
+          gap:20px;
+          align-items:end;
+        }
+        .project-inner:hover{transform:translateY(-4px);border-color:rgba(96,165,250,.3);box-shadow:0 24px 80px rgba(0,0,0,.45)}
+        .project-spotlight{
+          position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+          background:radial-gradient(500px circle at var(--mx,50%) var(--my,50%), rgba(96,165,250,.14) 0%, transparent 60%);
+          opacity:0;transition:opacity .18s var(--ease)
+        }
+        .project-inner:hover .project-spotlight{opacity:1}
+        .project-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;position:relative;z-index:1}
+        .project-tag{
+          display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid;
+          font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase
+        }
+        .project-year{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+        .project-metric{
+          display:flex;flex-direction:column;gap:4px;margin-bottom:14px;position:relative;z-index:1;
+        }
+        .project-metric strong{
+          font-family:var(--display);font-size:clamp(38px, 5vw, 72px);line-height:.9;letter-spacing:-.06em
+        }
+        .project-metric span{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+        .project-card h3{
+          margin:0 0 8px;position:relative;z-index:1;
+          font-family:var(--display);font-size:clamp(24px, 2.4vw, 34px);letter-spacing:-.05em
+        }
+        .project-subtitle{
+          margin:0 0 12px;position:relative;z-index:1;color:#c7d2fe;font-weight:600
+        }
+        .project-desc{
+          margin:0 0 20px;position:relative;z-index:1;color:var(--muted-2);line-height:1.8;
+          max-width:58ch
+        }
+        .project-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;position:relative;z-index:1}
+        .project-chip{
+          display:inline-flex;min-height:34px;padding:8px 10px;border-radius:999px;
+          background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted-2);font-size:12px
+        }
+        .project-link{
+          position:relative;z-index:1;
+          display:inline-flex;align-items:center;gap:8px;
+          color:#dbeafe;font-weight:600
+        }
+        .project-link-icon{transition:transform .18s var(--ease)}
+        .project-inner:hover .project-link-icon{transform:translate(2px,-2px)}
+
+        .writing-grid{
+          display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;
+        }
+        .writing-card{
+          display:block;padding:24px;border-radius:24px;
+          background:rgba(255,255,255,.04);border:1px solid var(--line);
+          box-shadow:var(--shadow);
+          transition:transform .2s var(--ease),border-color .2s var(--ease),background .2s var(--ease);
+        }
+        .writing-card:hover{transform:translateY(-4px);border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.06)}
+        .writing-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:20px}
+        .writing-tag{
+          display:inline-flex;min-height:30px;align-items:center;padding:0 10px;border-radius:999px;
+          background:rgba(255,255,255,.05);border:1px solid var(--line);color:#bfdbfe;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em
+        }
+        .writing-arrow{display:inline-flex;color:#bfdbfe}
+        .writing-card h3{margin:0 0 10px;font-family:var(--display);font-size:24px;line-height:1.1;letter-spacing:-.04em}
+        .writing-card p{margin:0;color:var(--muted-2);line-height:1.75}
+
+        .contact{
+          margin-top:88px;
+          background:transparent;
+          border-top:1px solid var(--line);
+        }
+        .contact-inner{max-width:1380px;margin:0 auto;padding:96px var(--pad) 120px}
+        .contact-title{margin-bottom:16px}
+        .contact-sub{max-width:760px;margin:0 0 34px;color:var(--muted-2);line-height:1.8;font-size:17px}
+        .contact-actions{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:34px}
+        .terminal{
+          max-width:700px;border-radius:24px;overflow:hidden;background:rgba(8,12,20,.9);
+          border:1px solid var(--line);box-shadow:var(--shadow)
+        }
+        .terminal-bar{
+          display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)
+        }
+        .terminal-bar span{width:11px;height:11px;border-radius:999px;display:inline-block}
+        .terminal-bar span:nth-child(1){background:#fb7185}
+        .terminal-bar span:nth-child(2){background:#fbbf24}
+        .terminal-bar span:nth-child(3){background:#34d399}
+        .terminal-title{margin-left:8px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+        .terminal-body{padding:18px 18px 20px;font-family:var(--mono);font-size:13px;line-height:2}
+        .terminal-line{color:var(--muted-2)}
+        .terminal-line--good{color:#86efac}
+        .muted{color:var(--muted)}
+        .footer{
+          padding:22px var(--pad) 120px;
+          display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+          border-top:1px solid var(--line);color:var(--muted)
+        }
+        .footer-brand{
+          font-family:var(--display);font-weight:800;font-size:18px;letter-spacing:-.04em;color:var(--text)
+        }
+        .footer-copy{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+        .footer-link{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+        .footer-link:hover{color:#93c5fd}
+
+        .dock{
+          position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+          z-index:120;display:flex;gap:8px;padding:10px;
+          background:rgba(9,13,22,.74);backdrop-filter:blur(18px);
+          border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow)
+        }
+        .dock button{
+          min-height:40px;padding:0 14px;border-radius:999px;border:1px solid transparent;
+          background:rgba(255,255,255,.04);color:var(--muted-2);cursor:pointer;
+          transition:all .18s var(--ease)
+        }
+        .dock button:hover{color:var(--text);border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.08)}
+
+        .palette-backdrop{
+          position:fixed;inset:0;z-index:120;
+          display:flex;align-items:flex-start;justify-content:center;
+          padding:92px 16px 16px;
+          background:rgba(2,6,23,.58);
+          backdrop-filter:blur(12px);
+        }
+        .palette{
+          width:min(720px, 100%);
+          background:rgba(10,15,26,.92);
+          border:1px solid var(--line);
+          border-radius:28px;
+          box-shadow:0 30px 100px rgba(0,0,0,.5);
+          overflow:hidden;
+        }
+        .palette-search{
+          display:flex;align-items:center;gap:10px;
+          padding:16px 18px;border-bottom:1px solid var(--line);
+          color:var(--muted-2);
+        }
+        .palette-search span{flex:1}
+        .palette-list{padding:10px}
+        .palette-item{
+          width:100%;
+          display:flex;justify-content:space-between;gap:12px;align-items:center;
+          min-height:48px;padding:0 14px;border-radius:16px;
+          background:transparent;border:1px solid transparent;
+          color:var(--text);text-align:left;cursor:pointer;
+          transition:background .18s var(--ease),border-color .18s var(--ease);
+        }
+        .palette-item:hover{background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.24)}
+        .palette-item span:last-child{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+
+        @keyframes pulse {
+          0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.26)}
+          50%{box-shadow:0 0 0 8px rgba(34,197,94,0)}
+        }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(20px)} to { opacity:1; transform:none } }
+        @keyframes scrollPulse {
+          0% { transform:scaleY(0); transform-origin:top; opacity:.35}
+          50% { transform:scaleY(1); transform-origin:top; opacity:1}
+          51% { transform:scaleY(1); transform-origin:bottom; opacity:1}
+          100% { transform:scaleY(0); transform-origin:bottom; opacity:.35}
+        }
+
+        @media (max-width: 1180px){
+          .hero{grid-template-columns:1fr;align-items:start}
+          .hero-side{grid-template-columns:repeat(2,minmax(0,1fr))}
+          .panel--stats,.panel--social{grid-column:1 / -1}
+          .about-grid{grid-template-columns:1fr}
+          .stack-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+          .writing-grid{grid-template-columns:1fr}
+          .projects-grid{grid-template-columns:1fr}
+          .project-card,.project-card--featured{grid-column:span 12}
+          .project-card--featured .project-inner{grid-template-columns:1fr}
+          .dock{display:none}
+        }
+        @media (max-width: 768px){
+          .nav-links{display:none}
+          .burger{display:flex}
+          .hero{padding-top:88px;padding-bottom:56px}
+          .hero-name{font-size:clamp(46px, 12vw, 68px)}
+          .hero-bio{font-size:16px}
+          .hero-metrics{grid-template-columns:1fr}
+          .hero-side{grid-template-columns:1fr}
+          .section{padding-top:84px}
+          .timeline{padding-left:20px}
+          .timeline::before{left:8px}
+          .timeline-dot{left:-16px}
+          .timeline-head{flex-direction:column}
+          .timeline-period{align-items:flex-start}
+          .stack-grid{grid-template-columns:1fr}
+          .panel--stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+        }
+        @media (max-width: 520px){
+          .panel--stats{grid-template-columns:1fr}
+          .hero-actions,.contact-actions{flex-direction:column}
+          .btn-primary,.btn-ghost{width:100%}
+          .section-title{font-size:clamp(28px, 8vw, 42px)}
+        }
+        @media (prefers-reduced-motion: reduce){
+          *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
         }
       `}</style>
-    </div>
+
+      <a href="#main" className="skip-link">
+        Skip to main content
+      </a>
+
+      <div className="site-bg" aria-hidden="true" />
+      <div className="page-shell" style={{ opacity: mounted ? 1 : 0, transition: "opacity .45s ease" }}>
+        <Navbar y={y} onOpenPalette={openPalette} />
+        <main id="main">
+          <Hero reducedMotion={reducedMotion} onOpenPalette={openPalette} />
+          <About />
+          <Timeline />
+          <Stack />
+          <Projects />
+          <Writing />
+          <Contact />
+        </main>
+        <Footer />
+        <Dock onOpenPalette={openPalette} />
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      </div>
+    </>
   );
 }
